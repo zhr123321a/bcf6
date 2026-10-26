@@ -6,7 +6,14 @@
   "feature_texture_count": 4,
   "mlp_input_channels": 12,
   "mlp_hidden_channels": [16],
-  "mlp_hidden_activation": "ReLU",
+  "mlp_activation_as_reported": "ReLU",
+  "mlp_hidden_activation": null,
+  "mlp_output_activation": null,
+  "implementation_activation": {
+    "hidden": "ReLU",
+    "output": "linear",
+    "origin": "reproduction_interpretation; paper does not specify placement layer by layer"
+  },
   "profiles": {
     "BCf-0.5K": {"square_side_lengths": [512, 256, 128, 64], "table_reported_mips": [8, 7, 6, 5]},
     "BCf-1K": {"square_side_lengths": [1024, 512, 256, 128], "table_reported_mips": [9, 8, 7, 6]},
