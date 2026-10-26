@@ -1,6 +1,6 @@
 # external-25 数据集适配协议
 
-本项目目标是使用现有 external-25 的相同材质输入，建立可与 DASTC、DBC 和 NTC 比较的 BCF6 结果。当前阶段为协议准备；输入绑定、训练及保存审计尚未执行。
+本项目目标是使用现有 external-25 的相同材质输入，建立可与 DASTC、DBC 和 NTC 比较的 BCF6 结果。2026-10-26（北京时间）已绑定 lubricant_spray 的冻结输入，完成单场短程训练、实际保存与重放验证；完整步数任务进入持久队列，详见 [R01](REPRODUCTION_R01_ZH.md)。当前实现尚未报告 valid-channel mask 质量、逐 mip 分数或全 25 场结果，下文保留后续评测要求。
 
 ## 数据与输出
 
@@ -8,7 +8,7 @@
 - 复用已有输入 manifest 与原域 HWC RGB9 float32 target；导入时核实文件 SHA256、尺寸、通道布局和数据类型。路径通过用户本机配置提供，不写入公共规格。
 - RGB9 顺序为 Diffuse RGB、Normal RGB、ORM（AO、roughness、metalness）。保持原始尺寸、现有色彩编码与法线约定，不擅自翻转法线、不额外施加 sRGB 线性化。
 - 保留历史输入中已登记的合成常量通道和 valid-channel mask；附加报告有效通道分数。位移和 alpha 不属于当前 RGB9 比较范围。
-- 原论文普通材质使用 normal XY、通常 8 输出。数据集主比较明确标为 **BCF6-RGB9，12→16→9**；保留一个 paper-style 8 输出配置用于检查原始结构及法线 Z 重建差异。RGB9 是适配，不是论文原配置完全不变。
+- 按用户本轮“论文官方配置”的要求，首轮采用 normal XY、8 输出，标为 **BCF6-paper8，12→16→8**；同时报告 8 通道质量与 XY 重建正 Z 后的 RGB9 质量。后续可单独训练 **BCF6-RGB9，12→16→9** 适配，不能混用配置身份。法线 Z 重建误差计入 RGB9 分数。
 
 ## 分辨率与 mip
 

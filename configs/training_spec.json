@@ -1,7 +1,7 @@
 {
   "schema": "bcf6_training_spec_v1",
-  "status": "design_specification_not_executable",
-  "training_started": false,
+  "status": "paper_reference_specification_not_runtime_config",
+  "runtime_entrypoint": "python -m bcf6.train; implementation choices are recorded in protocol.json",
   "source": "https://arxiv.org/html/2311.16121v2",
   "source_sections": ["5.1", "5.2", "6.1", "6.2"],
   "optimization_scope": "one material per model",

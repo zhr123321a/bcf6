@@ -1,0 +1,5 @@
+* text=auto eol=lf
+third_party/bcdec/bcdec.h -whitespace
+*.png binary
+*.dds binary
+*.bin binary

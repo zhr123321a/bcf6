@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/iOrange/bcdec",
+  "commit": "80859ed3b7afb1c527a2a99d70c61457bea72d0c",
+  "sha256": "134520764d96f70a27db814173616c89ad85db95fbd3328417c7a8c77e7ca189",
+  "license": "MIT OR Unlicense (license text retained in header)",
+  "usage": "independent standard BC6H decoder for verification"
+}
