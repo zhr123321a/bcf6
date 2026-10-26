@@ -1,0 +1,35 @@
+{
+  "schema": "bcf6_training_spec_v1",
+  "status": "design_specification_not_executable",
+  "training_started": false,
+  "source": "https://arxiv.org/html/2311.16121v2",
+  "source_sections": ["5.1", "5.2", "6.1", "6.2"],
+  "optimization_scope": "one material per model",
+  "optimizer": "Adam",
+  "optimizer_betas": null,
+  "optimizer_epsilon": null,
+  "optimizer_state_at_stage_boundary": null,
+  "scheduler": "exponential",
+  "scheduler_step_interval": null,
+  "batch_uv_grid_shape": [512, 512],
+  "scale_sampling": "one continuous uniformly sampled scale per batch",
+  "reference_filter": "bicubic within two adjacent reference mips, linear across LOD",
+  "feature_filter": "bilinear within two adjacent feature mips, linear across LOD",
+  "phases": [
+    {"name": "unconstrained_warmup", "steps": 5000, "feature_lr": 0.05, "decoder_lr": 0.001, "gamma": 0.9995},
+    {"name": "fixed_partition_block_training", "steps": 200000, "feature_lr": 0.01, "decoder_lr": 0.001, "gamma": 0.9999},
+    {"name": "quantized_features_decoder_finetune", "steps": 1000, "feature_updates": false, "decoder_lr": null, "gamma": null}
+  ],
+  "total_update_steps_including_finetune": 206000,
+  "partition_selection": "BC6 encode pretrained unconstrained features; fixed during block training",
+  "export": {
+    "format": "BC6H",
+    "mode_from_standard_bitwidth_mapping": 10,
+    "mode_code_binary": "11110",
+    "subsets_per_block": 2,
+    "endpoint_component_bits": 6,
+    "texel_index_bits_before_anchor_fixup": 3,
+    "signedness": null,
+    "decoder_storage_dtype": "float16"
+  }
+}

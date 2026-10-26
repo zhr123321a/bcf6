@@ -1,0 +1,18 @@
+{
+  "schema": "bcf6_paper_profiles_v1",
+  "status": "design_specification_not_executable",
+  "source": "https://arxiv.org/html/2311.16121v2#S6.T1",
+  "feature_channels_per_texture": 3,
+  "feature_texture_count": 4,
+  "mlp_input_channels": 12,
+  "mlp_hidden_channels": [16],
+  "mlp_hidden_activation": "ReLU",
+  "profiles": {
+    "BCf-0.5K": {"square_side_lengths": [512, 256, 128, 64], "table_reported_mips": [8, 7, 6, 5]},
+    "BCf-1K": {"square_side_lengths": [1024, 512, 256, 128], "table_reported_mips": [9, 8, 7, 6]},
+    "BCf-2K": {"square_side_lengths": [2048, 1024, 512, 256], "table_reported_mips": [10, 9, 8, 7]},
+    "BCf-2K++": {"square_side_lengths": [2048, 2048, 512, 256], "table_reported_mips": [10, 10, 8, 7]}
+  },
+  "mip_count_interpretation": "Verify explicit per-level dimensions; table counts would end at 4x4 if mip0 is included.",
+  "independent_trainable_parameters_per_mip": true
+}
