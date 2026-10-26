@@ -1,3 +1,5 @@
+// Independent reference decoder; no training/autograd logic.
+// Keep the vendored header unchanged, with its original license and SHA.
 #define BCDEC_IMPLEMENTATION
 #include "../third_party/bcdec/bcdec.h"
 #include <cstring>
@@ -14,7 +16,8 @@ extern "C" BCF6_EXPORT int bcf6_decode_image(const unsigned char* data, int widt
     const int bh = (height + 3) / 4;
     for (int by = 0; by < bh; ++by) {
         for (int bx = 0; bx < bw; ++bx) {
-            float tile[48];
+            float tile[48];  // 4 x 4 texels x 3 channels, row-major float32.
+            // bcdec pitch is in FLOATS: 4 RGB texels = 12, not 48 bytes.
             bcdec_bc6h_float(data + (by * bw + bx) * 16, tile, 12, is_signed);
             for (int y = 0; y < 4 && by*4+y < height; ++y) {
                 for (int x = 0; x < 4 && bx*4+x < width; ++x) {

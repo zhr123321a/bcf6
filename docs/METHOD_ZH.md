@@ -2,6 +2,8 @@
 
 依据：[原论文 arXiv v2](https://arxiv.org/html/2311.16121v2)，§3–§6.2 与表 1。本文使用论文的 $T_{\theta_i}$、$f_\eta$、$\mathcal F$ 和 $\mathcal G$ 记号。BCf 是原论文名称；BCF6 是后续文献对该 BC6 路线的称呼。
 
+本文介绍论文的方法。当前源码对未公开细节作了补充选择，尤其是连续端点坐标和反量化延拓并非式 (7)–(9) 的逐式移植；请对照[逐项设置审计](PAPER_SETTINGS_AUDIT_ZH.md)阅读，区分论文设定与本仓库实现。
+
 ## 1. 每个材质实际保存什么
 
 **Block-Compressed Features（BCf / BCF6）** 为每个材质学习四组特征纹理 $T_{\theta_0},\ldots,T_{\theta_3}$，每组 3 通道，并学习一个小型解码 MLP $f_\eta$。特征的三个通道是潜变量，不是材质的 RGB。每组纹理包含多个 mip；每级 mip 有自己的可训练参数。
