@@ -4,9 +4,10 @@
 
 ## 已执行的验证
 
-- Linux / GCC 11.4 编译独立 C++ 解码器；PyTorch 2.7.1+cu118 环境的 5 项测试通过。
+- Linux / GCC 11.4 编译独立 C++ 解码器；PyTorch 2.7.1+cu118 环境的 6 项测试通过（原 5 项及新增恢复检查）。
 - 随机测试 8,192 个 Mode 10 块，覆盖 signed/unsigned、32 个分区、anchor 交换及端点极值。Python 编解码与独立 `bcdec` 的浮点结果精确一致。
 - 检查连续 half 映射的值与导数、端点/索引梯度、训练阶段转换、DDS 保存/重载、FP16 权重舍入、再次导出的文件身份，以及损坏文件拒绝。
+- 在 CPU 合成样例上分别验证 warmup、block、finetune 的 checkpoint 续训：恢复模型、Adam、scheduler 和 RNG 后，下一次更新的损失及全部模型状态与连续执行逐元素相等。
 - 在 lubricant_spray 原始 2048×2048 RGB9 目标上完成 1K / 8 输出的 20+20+5 步 CUDA 短程训练，batch 为 512×512。2026-10-26 12:25:16（北京时间）完成保存和独立重载；实际数值载荷 1,857,520 字节，即 3.542938232421875 bpp。
 - 同一保存产物的全 mip0、原域 RGB9 CPU/GPU 重放：max abs = 5.960464477539063e-8，RMS = 1.0322176770788189e-9，`pixel_strict_pass=true`、`strict_pass=true`。该结果验证保存链；45 步短程训练不用于论文质量比较。
 

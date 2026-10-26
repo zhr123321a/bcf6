@@ -2,7 +2,7 @@
 
 **Block-Compressed Features (BCf / BCF6)** 的独立复现项目，依据 Ubisoft La Forge 的 *Real-Time Neural Materials using Block-Compressed Features*（Eurographics 2024）。目标是在 Linux 上完成训练、标准 BC6H 导出和保存重载评测，并接入现有 external-25 材质数据集。
 
-当前状态（2026-10-26，北京时间）：**训练器、Mode 10 编码、BC6H DDS 导出和独立重载已实现。Linux 的 5 项测试及真实数据短程训练通过。** 首个论文步数任务为 lubricant_spray / 1K / 8 输出 / 206,000 步，已交给持久调度器。完整训练状态与实现选择见 [复现记录 R01](docs/REPRODUCTION_R01_ZH.md)。硬件压缩纹理 shader 与 Windows 验收待完成。
+当前状态（2026-10-26，北京时间）：**训练器、Mode 10 编码、BC6H DDS 导出和独立重载已实现。Linux 的 6 项测试及真实数据短程训练通过。** 首个论文步数任务为 lubricant_spray / 1K / 8 输出 / 206,000 步，已交给持久调度器。完整训练状态与实现选择见 [复现记录 R01](docs/REPRODUCTION_R01_ZH.md)。硬件压缩纹理 shader 与 Windows 验收待完成。
 
 原论文称方法为 BCf；后续 BCF1 文献使用 BCF6 区分 BC6 与 BC1 路线。本项目是独立实现，作者项目入口见 [Clément Weinreich 主页](https://clement-w.github.io/)。
 
