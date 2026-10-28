@@ -6,6 +6,8 @@
 """
 
 import math
+import os
+from functools import lru_cache
 import numpy as np
 import torch
 from torch import nn
@@ -19,6 +21,43 @@ from .codec import (
     blocks_to_image,
 )
 from .storage import PROFILES, mip_shapes
+from .paper_forward import paper_signed_block as eager_paper_signed_block
+
+
+@lru_cache(maxsize=1)
+def compiled_paper_signed_block():
+    """Compile the signed block operation once; each mip shape may specialize.
+
+    A 1K pyramid has nine distinct block counts. PyTorch 2.7's default eight
+    recompilations can abort a full chain; raise the bound for this process.
+    """
+    # Keep elementary multiply/add rounding consistent with eager where possible;
+    # this only disables arithmetic FMA, not the Inductor/Triton kernel fusion.
+    if os.environ.get("TRITON_DEFAULT_FP_FUSION", "0") != "0":
+        raise RuntimeError("inductor block backend requires TRITON_DEFAULT_FP_FUSION=0")
+    os.environ["TRITON_DEFAULT_FP_FUSION"] = "0"
+    import torch._dynamo as dynamo
+
+    if hasattr(dynamo.config, "recompile_limit"):
+        dynamo.config.recompile_limit = max(dynamo.config.recompile_limit, 32)
+    elif hasattr(dynamo.config, "cache_size_limit"):
+        dynamo.config.cache_size_limit = max(dynamo.config.cache_size_limit, 32)
+    return torch.compile(eager_paper_signed_block, backend="inductor", fullgraph=True, dynamic=True)
+
+
+# One backend per training process. Saved BC6 textures always use codec.py.
+paper_signed_block = eager_paper_signed_block
+
+
+def configure_block_backend(backend):
+    """Select eager or fused block decoding for this process, without changing math."""
+    global paper_signed_block
+    if backend == "eager":
+        paper_signed_block = eager_paper_signed_block
+    elif backend == "inductor":
+        paper_signed_block = compiled_paper_signed_block()
+    else:
+        raise ValueError("Unknown block backend: " + str(backend))
 
 
 def halfcode_to_float(code):
@@ -145,13 +184,6 @@ class FeatureMip(nn.Module):
             self.register_buffer(
                 "subset", torch.zeros(n, 16, dtype=torch.long), persistent=False
             )
-            self.register_buffer(
-                "unquant_lut",
-                torch.as_tensor(
-                    unquantize(np.arange(-31, 32, dtype=np.int32)), dtype=torch.float32
-                ),
-                persistent=False,
-            )
             if mode == "quantized":
                 self.register_buffer("frozen_texture", torch.zeros(height, width, 3))
 
@@ -165,23 +197,14 @@ class FeatureMip(nn.Module):
     def texture(self):
         """恢复 HWC 特征纹理；block 模式保留端点和索引梯度。
 
-        端点位于连续 [-31,31] code 坐标，先对标准反量化 LUT 线性插值，
-        再混合两端点并作连续 half 转换。这里省去标准整数路径的舍入；
-        最终冻结时才使用 codec.decode_parameters 的精确结果。"""
+        训练路径使用论文式(7)-(9)的 signed 解释和显式边界补全；
+        最终冻结仍使用 codec.decode_parameters 的标准整数结果。
+        具体约定见 docs/PAPER_FORWARD_SIGNED_ZH.md。"""
         if self.mode == "free":
             return self.pixels
         if self.mode == "quantized":
             return self.frozen_texture
-        e = self.endpoints.clamp(-31, 31) + 31
-        lo = e.floor().long()
-        hi = (lo + 1).clamp(max=62)
-        f = e - lo
-        u = self.unquant_lut[lo] * (1 - f) + self.unquant_lut[hi] * f
-        row = torch.arange(len(e), device=e.device)[:, None]
-        a, b = u[row, 2 * self.subset], u[row, 2 * self.subset + 1]
-        t = self.indices.clamp(0, 1)[..., None]
-        code = ((1 - t) * a + t * b) * (31.0 / 32.0)
-        decoded = halfcode_to_float(code)
+        decoded = paper_signed_block(self.endpoints, self.indices, self.subset)
         return (
             decoded.reshape(self.height // 4, self.width // 4, 4, 4, 3)
             .permute(0, 2, 1, 3, 4)

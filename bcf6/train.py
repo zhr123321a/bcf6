@@ -9,16 +9,18 @@ from pathlib import Path
 import argparse
 import datetime
 import hashlib
+import importlib.util
 import json
 import math
 import os
 import random
 import signal
+import sys
 import time
 import numpy as np
 import torch
 from torch.nn import functional as F
-from .model import BCF6, sample_image
+from .model import BCF6, sample_image, configure_block_backend
 from .deployment import (
     export_model,
     load_model,
@@ -157,6 +159,8 @@ def main():
     p.add_argument("--batch-side", type=int, default=512)
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--device", default="cuda")
+    p.add_argument("--block-backend", choices=["auto", "eager", "inductor"], default="eager",
+                   help="eager default; auto/inductor opt into Linux CUDA TorchInductor fusion")
     p.add_argument("--threads", type=int, default=2)
     p.add_argument("--checkpoint-every", type=int, default=1000)
     p.add_argument("--log-every", type=int, default=100)
@@ -184,6 +188,15 @@ def main():
     device = torch.device(args.device)
     if device.type == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA unavailable")
+    can_fuse = (device.type == "cuda" and sys.platform.startswith("linux")
+                and hasattr(torch, "compile") and importlib.util.find_spec("triton") is not None)
+    args.block_backend_resolved = ("inductor" if can_fuse else "eager") if args.block_backend == "auto" else args.block_backend
+    if args.block_backend_resolved == "inductor" and not can_fuse:
+        raise RuntimeError("inductor block backend requires Linux CUDA, torch.compile and Triton")
+    configure_block_backend(args.block_backend_resolved)
+    print(json.dumps({"event": "block_backend", "requested": args.block_backend,
+                      "resolved": args.block_backend_resolved,
+                      "note": "First use of each mip shape may trigger compilation"}), flush=True)
     args.out.mkdir(parents=True, exist_ok=True)
     if (args.out / "protocol.json").exists() and args.resume is None:
         raise ValueError("Existing run; use a new output or explicit resume")
@@ -218,8 +231,12 @@ def main():
         loss="mean over batch and output channels",
         signedness="SF16; reproduction choice",
         initialization="all 32 Mode10 partitions; PCA in half-code domain; exact palette MSE selection",
-        endpoint_parameters="continuous signed 6-bit code units, piecewise linear unquantize LUT",
+        endpoint_parameters="continuous signed 6-bit codes; paper Eq7 with signed, zero and saturation completions",
         index_parameters="continuous normalized BC6 interpolation weight; nearest standard 3-bit weight at export",
+        block_forward="paper_signed_bc6_completion_v1; Eq8 both endpoints unquantized; Eq9 sign/magnitude",
+        block_backend_requested=args.block_backend,
+        block_backend_resolved=args.block_backend_resolved,
+        block_triton_fp_fusion=False if args.block_backend_resolved == "inductor" else None,
         uv_sampling="uniform independent samples arranged as a batch-side squared batch",
         reference_mip_generation="2x2 average, down to 4 texels on shorter side",
         sampler="border padding; align_corners=False; per-feature LOD size bias",
@@ -261,6 +278,7 @@ def main():
             "warmup_steps",
             "block_steps",
             "finetune_steps",
+            "block_backend_resolved",
         ]:
             if saved["args"][name] != getattr(args, name):
                 raise ValueError("Resume protocol mismatch: " + name)
